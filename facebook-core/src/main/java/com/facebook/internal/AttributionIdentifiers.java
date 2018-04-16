@@ -20,28 +20,12 @@
 
 package com.facebook.internal;
 
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Binder;
-import android.os.IBinder;
-import android.os.IInterface;
 import android.os.Looper;
-import android.os.Parcel;
-import android.os.RemoteException;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.facebook.FacebookException;
-
-import java.lang.reflect.Method;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingDeque;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.UUID;
 
 /**
@@ -51,9 +35,6 @@ import java.util.UUID;
  */
 public class AttributionIdentifiers {
     private static final String TAG = AttributionIdentifiers.class.getCanonicalName();
-
-    // com.google.android.gms.common.ConnectionResult.SUCCESS
-    private static final int CONNECTION_RESULT_SUCCESS = 0;
 
     private String attributionId;
     private String androidAdvertiserId;
@@ -80,8 +61,8 @@ public class AttributionIdentifiers {
         }
 
         AttributionIdentifiers identifiers = new AttributionIdentifiers();
-        identifiers.attributionId = UUID.randomUUID();
-        identifiers.androidAdvertiserId = UUID.randomUUID();
+        identifiers.attributionId = UUID.randomUUID().toString();
+        identifiers.androidAdvertiserId = UUID.randomUUID().toString();
         identifiers.limitTracking = true;
 
         String installerPackageName = getInstallerPackageName(context);
