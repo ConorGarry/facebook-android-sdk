@@ -63,6 +63,7 @@ public final class ServerProtocol {
             = "token,signed_request";
     public static final String DIALOG_RETURN_SCOPES_TRUE = "true";
     public static final String DIALOG_REDIRECT_URI = "fbconnect://success";
+    public static final String DIALOG_REDIRECT_CHROME_OS_URI = "fbconnect://chrome_os_success";
     public static final String DIALOG_CANCEL_URI = "fbconnect://cancel";
 
     public static final String FALLBACK_DIALOG_PARAM_APP_ID = "app_id";
@@ -76,7 +77,7 @@ public final class ServerProtocol {
     // URL components
     private static final String GRAPH_VIDEO_URL_FORMAT = "https://graph-video.%s";
     private static final String GRAPH_URL_FORMAT = "https://graph.%s";
-    private static final String GRAPH_API_VERSION = "v2.11";
+    private static final String GRAPH_API_VERSION = "v3.1";
 
     public static final Collection<String> errorsProxyAuthDisabled =
             Utility.unmodifiableCollection("service_disabled", "AndroidAuthKillSwitchException");

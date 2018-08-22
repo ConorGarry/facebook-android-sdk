@@ -1428,7 +1428,7 @@ public class GraphRequest {
                 String accessToken = appID + "|" + clientToken;
                 this.parameters.putString(ACCESS_TOKEN_PARAM, accessToken);
             } else {
-                Log.d(TAG, "Warning: Request without access token missing application ID or" +
+                Utility.logd(TAG, "Warning: Request without access token missing application ID or" +
                         " client token.");
             }
         }
@@ -1486,8 +1486,7 @@ public class GraphRequest {
         addCommonParameters();
         String fullUrl = appendParametersToBaseUrl(baseUrl, true);
         Uri uri = Uri.parse(fullUrl);
-        String relativeUrl = String.format("%s?%s", uri.getPath(), uri.getQuery());
-        return relativeUrl;
+        return String.format("%s?%s", uri.getPath(), uri.getQuery());
     }
 
     final String getUrlForSingleRequest() {

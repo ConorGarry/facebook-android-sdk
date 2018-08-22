@@ -26,10 +26,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.telecom.Call;
 import android.util.Log;
+import android.webkit.WebView;
 import bolts.AppLinks;
 
 import com.facebook.AccessToken;
@@ -67,7 +68,6 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-
 
 /**
  * <p>
@@ -295,7 +295,7 @@ public class AppEventsLogger {
         } else {
           // If context is not an Activity, we cannot get intent nor calling activity.
           resetSourceApplication();
-          Log.d(AppEventsLogger.class.getName(),
+          Utility.logd(AppEventsLogger.class.getName(),
               "To set source application the context of activateApp must be an instance of" +
                       " Activity");
         }
@@ -393,18 +393,24 @@ public class AppEventsLogger {
     }
 
     /**
-     * Notifies the events system which internal SDK Libraries the app is utilizing.
+     * Notifies the events system which internal SDK Libraries,
+     * and some specific external Libraries that the app is utilizing.
      * This is called internally and does NOT need to be called externally.
      *
      * @param context The Context
      * @param applicationId The String applicationId
      */
     public static void initializeLib(Context context, String applicationId) {
+        if (!FacebookSdk.getAutoLogAppEventsEnabled()) {
+            return;
+        }
         final AppEventsLogger logger = new AppEventsLogger(context, applicationId, null);
         backgroundExecutor.execute(new Runnable() {
             @Override
             public void run() {
                 Bundle params = new Bundle();
+
+                // internal SDK Libraries
                 try {
                     Class.forName("com.facebook.core.Core");
                     params.putInt("core_lib_included", 1);
@@ -430,8 +436,22 @@ public class AppEventsLogger {
                     params.putInt("applinks_lib_included", 1);
                 } catch (ClassNotFoundException ignored) { /* no op */ }
                 try {
+                    Class.forName("com.facebook.marketing.Marketing");
+                    params.putInt("marketing_lib_included", 1);
+                } catch (ClassNotFoundException ignored) { /* no op */ }
+                try {
                     Class.forName("com.facebook.all.All");
                     params.putInt("all_lib_included", 1);
+                } catch (ClassNotFoundException ignored) { /* no op */ }
+
+                //  external SDK Libraries
+                try {
+                    Class.forName("com.android.billingclient.api.BillingClient");
+                    params.putInt("billing_client_lib_included", 1);
+                } catch (ClassNotFoundException ignored) { /* no op */ }
+                try {
+                    Class.forName("com.android.vending.billing.IInAppBillingService");
+                    params.putInt("billing_service_lib_included", 1);
                 } catch (ClassNotFoundException ignored) { /* no op */ }
 
                 logger.logSdkEvent(AnalyticsEvents.EVENT_SDK_INITIALIZE, null, params);
@@ -820,6 +840,33 @@ public class AppEventsLogger {
     }
 
     /**
+     *  Intended to be used as part of a hybrid webapp.
+     *  If you call this method, the FB SDK will add a new JavaScript interface into your webview.
+     *  If the FB Pixel is used within the webview, and references the app ID of this app,  then it
+     *  will detect the presence of this injected JavaScript object and pass Pixel events back to
+     *  the FB SDK for logging using the AppEvents framework.
+     *
+     * @param webView The webview to augment with the additional JavaScript behaviour
+     * @param context Used to access the applicationId and the attributionId for non-authenticated
+     *                users.
+     */
+    public static void augmentWebView(WebView webView, Context context) {
+        String[] parts = Build.VERSION.RELEASE.split("\\.");
+        int majorRelease = parts.length > 0 ? Integer.parseInt(parts[0]) : 0;
+        int minorRelease = parts.length > 1 ? Integer.parseInt(parts[1]) : 0;
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 ||
+                majorRelease < 4 || (majorRelease == 4 && minorRelease <= 1)) {
+            Logger.log(LoggingBehavior.DEVELOPER_ERRORS, TAG,
+                    "augmentWebView is only available for Android SDK version >= 17 on devices " +
+                            "running Android >= 4.2");
+            return;
+        }
+        webView.addJavascriptInterface(new FacebookSDKJSInterface(context),
+                "fbmq_" + FacebookSdk.getApplicationId());
+    }
+
+    /**
      * Sets a user id to associate with all app events. This can be used to associate your own
      * user id with the app events logged from this instance of an application.
      *
@@ -858,18 +905,18 @@ public class AppEventsLogger {
             final Bundle parameters,
             final String applicationID,
             final GraphRequest.Callback callback) {
-        final String userID = getUserID();
-        if (userID == null || userID.isEmpty()) {
-            Logger.log(
-                    LoggingBehavior.APP_EVENTS,
-                    TAG,
-                    "AppEventsLogger userID cannot be null or empty");
-            return;
-        }
-
         getAnalyticsExecutor().execute(new Runnable() {
             @Override
             public void run() {
+                final String userID = getUserID();
+                if (userID == null || userID.isEmpty()) {
+                    Logger.log(
+                          LoggingBehavior.APP_EVENTS,
+                          TAG,
+                          "AppEventsLogger userID cannot be null or empty");
+                    return;
+                }
+
                 Bundle userPropertiesParams = new Bundle();
                 userPropertiesParams.putString("user_unique_id", userID);
                 userPropertiesParams.putBundle("custom_data", parameters);
@@ -955,7 +1002,7 @@ public class AppEventsLogger {
         }
 
         // If we have a session and the appId passed is null or matches the session's app ID:
-        if (accessToken != null &&
+        if (AccessToken.isCurrentAccessTokenActive() &&
                 (applicationId == null || applicationId.equals(accessToken.getApplicationId()))
                 ) {
             accessTokenAppId = new AccessTokenAppIdPair(accessToken);
@@ -976,6 +1023,9 @@ public class AppEventsLogger {
             if (backgroundExecutor != null) {
                 return;
             }
+            // Having single runner thread enforces ordered execution of tasks,
+            // which matters in some cases e.g. making sure user id is set before
+            // trying to update user properties for a given id
             backgroundExecutor = new ScheduledThreadPoolExecutor(1);
         }
 

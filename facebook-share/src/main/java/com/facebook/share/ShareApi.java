@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2014-present, Facebook, Inc. All rights reserved.
  *
  * You are hereby granted a non-exclusive, worldwide, royalty-free license to use,
@@ -145,7 +145,7 @@ public final class ShareApi {
             return false;
         }
         final AccessToken accessToken = AccessToken.getCurrentAccessToken();
-        if (accessToken == null) {
+        if (!AccessToken.isCurrentAccessTokenActive()) {
             return false;
         }
         final Set<String> permissions = accessToken.getPermissions();
