@@ -36,3 +36,8 @@
     public static com.android.vending.billing.IInAppBillingService asInterface(android.os.IBinder);
     public android.os.Bundle getSkuDetails(int, java.lang.String, java.lang.String, android.os.Bundle);
 }
+
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

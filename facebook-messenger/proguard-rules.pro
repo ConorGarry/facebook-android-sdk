@@ -35,3 +35,8 @@
 -keepnames class com.facebook.CustomTabActivity
 
 -keep class com.facebook.messenger.Messenger
+
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}

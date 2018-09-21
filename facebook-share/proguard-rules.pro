@@ -31,3 +31,8 @@
 -keepnames class com.facebook.CustomTabActivity
 
 -keep class com.facebook.share.Share
+
+-keepclassmembers enum * {
+    public static **[] values();
+    public static ** valueOf(java.lang.String);
+}
